@@ -19,12 +19,34 @@ export default function RafflePage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminQuantity, setAdminQuantity] = useState(1);
 
-  const ADMIN_PASSWORD = "rifa-admin-2026";
+  const ADMIN_PASSWORD = "marizetesergio";
   const numbers = Array.from({ length: 100 }, (_, i) => i + 1);
   const progress = (soldNumbers.length / 100) * 100;
 
   useEffect(() => {
-    setIsAdmin(localStorage.getItem('isAdmin') === 'true');
+    // Token validation
+    const params = new URLSearchParams(window.location.search);
+    const tokenParam = params.get('token');
+    setToken(tokenParam);
+
+    if (tokenParam === ADMIN_PASSWORD) {
+      setIsAdmin(true);
+      setTokenLoading(false);
+      setIsValidToken(true);
+    } else if (tokenParam) {
+      getDoc(doc(db, 'access_tokens', tokenParam)).then(docSnap => {
+        if (docSnap.exists() && docSnap.data().used !== true) {
+          setIsValidToken(true);
+          setTokenData(docSnap.data() as { allowedQuantity: number; used: boolean });
+        } else {
+          setIsValidToken(false);
+        }
+        setTokenLoading(false);
+      });
+    } else {
+      setIsValidToken(false);
+      setTokenLoading(false);
+    }
     
     const resQ = collection(db, 'reservations');
     const unsubRes = onSnapshot(resQ, (snapshot) => {
@@ -40,26 +62,6 @@ export default function RafflePage() {
         setDoc(settQ, { status: 'open', winner: null });
       }
     });
-
-    // Token validation
-    const params = new URLSearchParams(window.location.search);
-    const tokenParam = params.get('token');
-    setToken(tokenParam);
-
-    if (tokenParam) {
-      getDoc(doc(db, 'access_tokens', tokenParam)).then(docSnap => {
-        if (docSnap.exists() && docSnap.data().used !== true) {
-          setIsValidToken(true);
-          setTokenData(docSnap.data() as { allowedQuantity: number; used: boolean });
-        } else {
-          setIsValidToken(false);
-        }
-        setTokenLoading(false);
-      });
-    } else {
-      setIsValidToken(false);
-      setTokenLoading(false);
-    }
 
     return () => {
       unsubRes();
@@ -270,18 +272,6 @@ export default function RafflePage() {
             <div className="text-center p-8 bg-amber-50 rounded-lg">
               <p className="font-bold text-amber-800">Token inválido ou já utilizado!</p>
               <p className="text-sm text-amber-600">Por favor, entre em contato com o administrador para obter um novo link.</p>
-              
-              <button 
-                onClick={() => {
-                  localStorage.setItem('isAdmin', 'true');
-                  setIsAdmin(true);
-                  alert("Este dispositivo agora é um Administrador.");
-                  window.location.reload();
-                }}
-                className="mt-4 bg-gray-800 text-white px-4 py-2 rounded font-bold"
-              >
-                Tornar este dispositivo Administrador
-              </button>
             </div>
           ) : (
             <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
