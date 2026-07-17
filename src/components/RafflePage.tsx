@@ -3,14 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Copy, Check, Gift } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, addDoc, onSnapshot, doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, doc, updateDoc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 export default function RafflePage() {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [formData, setFormData] = useState({ name: '', whatsapp: '' });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [soldNumbers, setSoldNumbers] = useState<number[]>([]);
+  const [soldNumbersMap, setSoldNumbersMap] = useState<Record<number, string>>({});
   const [raffleSettings, setRaffleSettings] = useState<{ status: string; winner: number | null } | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [tokenData, setTokenData] = useState<{ allowedQuantity: number; used: boolean } | null>(null);
@@ -21,7 +21,7 @@ export default function RafflePage() {
 
   const ADMIN_PASSWORD = "marizetesergio";
   const numbers = Array.from({ length: 100 }, (_, i) => i + 1);
-  const progress = (soldNumbers.length / 100) * 100;
+  const progress = (Object.keys(soldNumbersMap).length / 100) * 100;
 
   useEffect(() => {
     // Token validation
@@ -50,8 +50,11 @@ export default function RafflePage() {
     
     const resQ = collection(db, 'reservations');
     const unsubRes = onSnapshot(resQ, (snapshot) => {
-      const sold = snapshot.docs.map(doc => doc.data().number);
-      setSoldNumbers(sold);
+      const sold: Record<number, string> = {};
+      snapshot.docs.forEach(doc => {
+        sold[doc.data().number] = doc.id;
+      });
+      setSoldNumbersMap(sold);
     });
 
     const settQ = doc(db, 'raffle_settings', 'status');
@@ -89,9 +92,27 @@ export default function RafflePage() {
     });
   };
 
-  const handleNumberClick = (num: number) => {
-    if (isAdmin) return;
-    if (soldNumbers.includes(num) || raffleSettings?.status === 'drawn') return;
+  const handleNumberClick = async (num: number) => {
+    if (isAdmin) {
+      const isSold = !!soldNumbersMap[num];
+      const action = isSold ? "liberar" : "reservar";
+      
+      if (window.confirm(`Tem certeza que deseja ${action} o número ${num}?`)) {
+        if (isSold) {
+          await deleteDoc(doc(db, 'reservations', soldNumbersMap[num]));
+        } else {
+          await addDoc(collection(db, 'reservations'), {
+            number: num,
+            name: 'Administrador',
+            whatsapp: 'Administrador',
+            timestamp: new Date()
+          });
+        }
+      }
+      return;
+    }
+    
+    if (soldNumbersMap[num] || raffleSettings?.status === 'drawn') return;
     
     if (isValidToken !== true) {
       alert("Token inválido ou já utilizado.");
@@ -185,7 +206,7 @@ export default function RafflePage() {
       <div className="max-w-6xl mx-auto mb-6 bg-white p-6 rounded-[24px] shadow-sm border border-[#E8E1DC]">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm font-bold text-gray-700">Progresso da Rifa</span>
-          <span className="text-sm font-bold text-rose-600">{progress}% Vendidos</span>
+          <span className="text-sm font-bold text-rose-600">{Math.round(progress)}% Vendidos</span>
         </div>
         <div className="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
           <motion.div
@@ -288,10 +309,10 @@ export default function RafflePage() {
                 <button
                   key={num}
                   onClick={() => handleNumberClick(num)}
-                  disabled={soldNumbers.includes(num)}
+                  disabled={isAdmin ? false : !!soldNumbersMap[num]}
                   className={`aspect-square border rounded-lg flex items-center justify-center font-bold transition-all ${
-                    soldNumbers.includes(num)
-                      ? 'bg-rose-100 text-rose-300 border-rose-100 cursor-not-allowed'
+                    soldNumbersMap[num]
+                      ? 'bg-rose-100 text-rose-300 border-rose-100'
                       : selectedNumbers.includes(num)
                       ? 'bg-rose-600 text-white border-rose-600'
                       : 'bg-gray-50 text-gray-700 border-gray-100 hover:border-rose-400 hover:text-rose-600 hover:bg-rose-50'
