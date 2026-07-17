@@ -167,7 +167,7 @@ export default function RafflePage() {
                 onClick={async () => {
                   const newToken = Math.random().toString(36).substring(7);
                   await setDoc(doc(db, 'access_tokens', newToken), { used: false, allowedQuantity: adminQuantity });
-                  const newLink = window.location.origin + "/?token=" + newToken;
+                  const newLink = window.location.href.split('?')[0] + "?token=" + newToken;
                   copyToClipboard(newLink);
                   alert("Novo link copiado para a área de transferência!");
                 }}
