@@ -1,0 +1,6 @@
+{
+  "name": "Rifa Solidária Marizete",
+  "description": "Página de rifa solidária para ajudar nos cuidados de saúde de Marizete.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
