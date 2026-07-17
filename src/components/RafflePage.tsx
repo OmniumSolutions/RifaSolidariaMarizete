@@ -90,6 +90,7 @@ export default function RafflePage() {
   };
 
   const handleNumberClick = (num: number) => {
+    if (isAdmin) return;
     if (soldNumbers.includes(num) || raffleSettings?.status === 'drawn') return;
     
     if (isValidToken !== true) {
@@ -118,7 +119,7 @@ export default function RafflePage() {
 
     // Open WhatsApp immediately
     const message = `Olá! Acabei de reservar os números ${selectedNumbers.join(', ')} da rifa solidária da Marizete. Meu nome é ${formData.name}.`;
-    const whatsappLink = `https://wa.me/5573991116235?text=${encodeURIComponent(message)}`;
+    const whatsappLink = `https://wa.me/5573991820505?text=${encodeURIComponent(message)}`;
     window.open(whatsappLink, '_blank');
     setIsModalOpen(false);
     setFormData({ name: '', whatsapp: '' });
@@ -271,7 +272,15 @@ export default function RafflePage() {
           ) : (isValidToken === false && !isAdmin) ? (
             <div className="text-center p-8 bg-amber-50 rounded-lg">
               <p className="font-bold text-amber-800">Token inválido ou já utilizado!</p>
-              <p className="text-sm text-amber-600">Por favor, entre em contato com o administrador para obter um novo link.</p>
+              <p className="text-sm text-amber-600">Para reservar novos números, entre em contato com Sérgio.</p>
+              <a 
+                href={`https://wa.me/5573991820505?text=${encodeURIComponent("Olá! Gostaria de comprar mais números ou realizar uma doação.")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-block bg-green-600 text-white px-6 py-2 rounded-full font-bold"
+              >
+                Falar com Sérgio no WhatsApp
+              </a>
             </div>
           ) : (
             <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
